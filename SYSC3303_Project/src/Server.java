@@ -11,7 +11,7 @@ public class Server {
 
 	
 	private DatagramSocket wellKnown;
-	private DatagramPacket incomingPacket;
+
 	//private byte threadMode;
 	
 	public Server() {
@@ -24,16 +24,24 @@ public class Server {
 	}
 	
 	
-	public void recieveTFTP() {
+	public DatagramPacket recieveTFTP() {
 		byte data[] = new byte[BUFFER_SIZE];
-		incomingPacket = new DatagramPacket(data, data.length);
+		DatagramPacket incomingPacket = new DatagramPacket(data, data.length);
 		
 		try {
 			wellKnown.receive(incomingPacket);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
-		}		
-		//Create ServerThread()
+		}
+		return incomingPacket;
+	}
+	
+	public static void main(String [] args) {
+		Server s = new Server();
+		for(;;) {
+			ServerThread st = new ServerThread(s.recieveTFTP());
+			st.start();
+		}
 	}
 } 
