@@ -63,6 +63,29 @@ public class ServerThread extends Thread{
 		}
 	}
 	
+	private void waitForAck(byte blockNumber) {
+		byte comparitor[] = {0,ACK,0,blockNumber};
+		byte data[] = new byte[BUFFER_SIZE];
+		boolean correctBlock = true;
+		for(;;) {
+			DatagramPacket temp = new DatagramPacket (data, data.length);
+			
+			try {
+				socket.receive(temp);
+				if (temp.getLength()==comparitor.length) correctBlock = false;
+
+				for (int i = 0; i < comparitor.length; i++) {
+					if (temp.getData()[i]==comparitor[i]) correctBlock = false;
+				}
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			if (correctBlock==true) return;
+		}
+	}
+	
 	private void handleRead() {
 		//TODO: Implement real read method
 		/*NOTE: This is a test method filler simply
@@ -75,7 +98,7 @@ public class ServerThread extends Thread{
 		//Actual Read Handler
 		
 		try {
-			BufferedInputStream in = new BufferedInputStream(new FileInputStream("in.dat"));
+			BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
 			
 			byte[] msg;// = new byte[BUFFER_SIZE];
 			byte[] data = new byte[512];
@@ -90,6 +113,7 @@ public class ServerThread extends Thread{
 				msg[3] = blockNumber;
 				System.arraycopy(data,0,msg,4,n);
 				sendData(msg);
+				waitForAck(blockNumber);
 			}
 			in.close();
 			
