@@ -40,8 +40,8 @@ public class Server {
 	public static void main(String [] args) {
 		Server s = new Server();
 		for(;;) {
-			ServerThread st = new ServerThread(s.recieveTFTP());
-			st.start();
+			Thread st = new Thread(new ServerThread(s.recieveTFTP()));
+			st.run();
 		}
 	}
 } 

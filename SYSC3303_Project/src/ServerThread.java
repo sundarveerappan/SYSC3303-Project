@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 
 
-public class ServerThread extends Thread{
+public class ServerThread implements Runnable{
 	public static enum Request {ERROR, READ, WRITE};
 	public static final int MESSAGE_SIZE = 512;
 	public static final int BUFFER_SIZE = MESSAGE_SIZE+4;
@@ -24,7 +24,6 @@ public class ServerThread extends Thread{
 	 */
 	public ServerThread(DatagramPacket request) {
 		this.request = request;
-		processRequest();
 	}
 	
 	/**
@@ -275,6 +274,11 @@ public class ServerThread extends Thread{
 		 */
 		byte data[] = {0, 5};
 		sendData(data);
+	}
+
+	@Override
+	public void run() {
+		processRequest();
 	}
 	
 
