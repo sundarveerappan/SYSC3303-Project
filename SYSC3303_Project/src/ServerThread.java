@@ -4,7 +4,9 @@ import java.net.*;
 
 public class ServerThread extends Thread{
 	public static enum Request {ERROR, READ, WRITE};
-	public static final int BUFFER_SIZE = 512+4;
+	public static final int MESSAGE_SIZE = 512;
+	public static final int BUFFER_SIZE = MESSAGE_SIZE+4;
+	public static final byte MAX_BLOCK_NUM = 127;
 	public static final byte DATA = 3;
 	public static final byte ACK = 4;
 	
@@ -87,20 +89,10 @@ public class ServerThread extends Thread{
 	}
 	
 	private void handleRead() {
-		//TODO: Implement real read method
-		/*NOTE: This is a test method filler simply
-		 * replying with the appropriate request
-		 * as per SYSC 3303 assignment 1
-		 */
-		//byte data[] = {0, 3, 0, 1};
-		//sendData(data);
-		
-		//Actual Read Handler
-		
 		try {
 			BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
 			
-			byte[] msg;// = new byte[BUFFER_SIZE];
+			byte[] msg;
 			byte[] data = new byte[512];
 			int n;
 			byte blockNumber = 1;
@@ -114,6 +106,8 @@ public class ServerThread extends Thread{
 				System.arraycopy(data,0,msg,4,n);
 				sendData(msg);
 				waitForAck(blockNumber);
+				blockNumber++;
+				if (blockNumber >= MAX_BLOCK_NUM) blockNumber = 0; 
 			}
 			in.close();
 			
@@ -130,14 +124,66 @@ public class ServerThread extends Thread{
 		}
 	}
 	
+	private void sendAck(byte blockNumber) {
+		byte msg[] = {0,ACK,0,blockNumber};
+		DatagramPacket temp = new DatagramPacket (msg, msg.length,ip,port);
+		try {
+			socket.send(temp);
+		} catch (IOException e) {
+			System.out.println("Send Packet Error");
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	private byte[] getBlock(byte blockNumber) {
+		byte msg[];// = new byte[BUFFER_SIZE];
+		byte data[] = new byte[BUFFER_SIZE];
+		for(;;) {
+			msg = new byte[BUFFER_SIZE];
+			DatagramPacket temp = new DatagramPacket (msg, msg.length);
+			
+			try {
+				socket.receive(temp);
+				if (temp.getData()[0] == 0 && temp.getData()[1] == DATA && temp.getData()[2] == 0) {
+					System.arraycopy(temp.getData(), 4,data, 0, temp.getLength());
+					return data;
+				}
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+	}
+	
 	private void handleWrite() {
-		//TODO: Implement real write method
-		/*NOTE: This is a test method filler simply
-		 * replying with the appropriate request
-		 * as per SYSC 3303 assignment 1
-		 */
-		byte data[] = {0, 4, 0, 0};
-		sendData(data);
+		byte blockNumber = 0;
+		sendAck(blockNumber);
+		try {
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+			for (;;) {
+				if(blockNumber >= MAX_BLOCK_NUM) blockNumber = 0;
+				byte[] temp = getBlock(blockNumber);
+				out.write(temp, 0, temp.length);
+				sendAck(blockNumber);
+				blockNumber++;
+				if(temp.length<MESSAGE_SIZE) {
+					out.close();
+					break;
+				}
+			}
+		} catch (FileNotFoundException e) {
+			System.out.println("File Read Error:");
+			e.printStackTrace();
+			handleError();
+			return;
+		} catch (IOException e) {
+			System.out.println("File Read Error:");
+			e.printStackTrace();
+			handleError();
+			return;
+		}
 	}
 	
 	private void handleError() {
