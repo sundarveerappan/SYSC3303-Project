@@ -1,9 +1,12 @@
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 
 
 public class ServerThread extends Thread{
 	public static enum Request {ERROR, READ, WRITE};
+	public static final int BUFFER_SIZE = 512+4;
+	public static final byte DATA = 3;
+	public static final byte ACK = 4;
 	
 	private DatagramPacket request;
 	private DatagramSocket socket;
@@ -66,8 +69,41 @@ public class ServerThread extends Thread{
 		 * replying with the appropriate request
 		 * as per SYSC 3303 assignment 1
 		 */
-		byte data[] = {0, 3, 0, 1};
-		sendData(data);
+		//byte data[] = {0, 3, 0, 1};
+		//sendData(data);
+		
+		//Actual Read Handler
+		
+		try {
+			BufferedInputStream in = new BufferedInputStream(new FileInputStream("in.dat"));
+			
+			byte[] msg;// = new byte[BUFFER_SIZE];
+			byte[] data = new byte[512];
+			int n;
+			byte blockNumber = 1;
+			
+			while ((n = in.read(data)) != -1) {
+				msg = new byte[BUFFER_SIZE];
+				msg[0] = 0;
+				msg[1] = 4;
+				msg[2] = 0;
+				msg[3] = blockNumber;
+				System.arraycopy(data,0,msg,4,n);
+				sendData(msg);
+			}
+			in.close();
+			
+		} catch (FileNotFoundException e) {
+			System.out.println("File Read Error:");
+			e.printStackTrace();
+			handleError();
+			return;
+		} catch (IOException e) {
+			System.out.println("File Read Error:");
+			e.printStackTrace();
+			handleError();
+			return;
+		}
 	}
 	
 	private void handleWrite() {
