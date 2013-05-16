@@ -41,7 +41,7 @@ public class Server {
 		Server s = new Server();
 		for(;;) {
 			Thread st = new Thread(new ServerThread(s.recieveTFTP()));
-			st.run();
+			st.start();
 		}
 	}
 } 
