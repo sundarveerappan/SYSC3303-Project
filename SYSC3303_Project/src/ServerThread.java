@@ -235,14 +235,13 @@ public class ServerThread implements Runnable{
 	 */
 	private void handleWrite() {
 		byte blockNumber = 0;
-		sendAck(blockNumber);
 		try {
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
 			for (;;) {
+				sendAck(blockNumber);
 				if(blockNumber >= MAX_BLOCK_NUM) blockNumber = 0;
 				byte[] temp = getBlock(blockNumber);
 				out.write(temp, 0, temp.length);
-				sendAck(blockNumber);
 				blockNumber++;
 				if(temp.length<MESSAGE_SIZE) {
 					out.close();
